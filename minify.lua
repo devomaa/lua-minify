@@ -3181,47 +3181,24 @@ local function BeautifyVariables(globalScope, rootScope)
 	modify(rootScope)
 end
 
-local function usageError()
-	error(
-			"\nusage: minify <file> or unminify <file>\n" ..
-			"  The modified code will be printed to the stdout, pipe it to a file, the\n" ..
-			"  lua interpreter, or something else as desired EG:\n\n" ..
-			"        lua minify.lua minify input.lua > output.lua\n\n" ..
-			"  * minify will minify the code in the file.\n" ..
-			"  * unminify will beautify the code and replace the variable names with easily\n" ..
-			"    find-replacable ones to aide in reverse engineering minified code.\n", 0)
-end
 
-local args = {...}
-if #args ~= 2 then
-	usageError()
-end
 
-local sourceFile = io.open(args[2], 'r')
-if not sourceFile then
-	error("Could not open the input file `" .. args[2] .. "`", 0)
-end
+function minify(code)
+	local code = code or "return nil"
+	local ast = CreateLuaParser(code)
+	local global_scope, root_scope = AddVariableInfo(ast)
 
-local data = sourceFile:read('*all')
-local ast = CreateLuaParser(data)
-local global_scope, root_scope = AddVariableInfo(ast)
-
-local function minify(ast, global_scope, root_scope)
 	MinifyVariables(global_scope, root_scope)
 	StripAst(ast)
 	PrintAst(ast)
 end
-
-local function beautify(ast, global_scope, root_scope)
+function beautify(code)
+	local code = code or "return nil"
+	local ast = CreateLuaParser(code)
+	local global_scope, root_scope = AddVariableInfo(ast)
+	
 	BeautifyVariables(global_scope, root_scope)
 	FormatAst(ast)
 	PrintAst(ast)
 end
-
-if args[1] == 'minify' then
-	minify(ast, global_scope, root_scope)
-elseif args[1] == 'unminify' then
-	beautify(ast, global_scope, root_scope)
-else
-	usageError()
-end
+return {["minify"]=minify,["beautify"]=beautify}
